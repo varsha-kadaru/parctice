@@ -1,35 +1,44 @@
+install.packages("partykit")
+
+# Load necessary libraries
+library(tidyverse)
 library(partykit)
 library(caTools)
 
-wd<-data.frame(
-  temp=rnorm(200,mean=20,sd=5),
-  hum=rnorm(200,mean=75,sd=15),
-  ws=rnorm(200,mean=50,sd=10),
-  rt=sample(c("Yes","No"),200,replace=TRUE)
-)
+# download & load dataset:
+#https://www.kaggle.com/datasets/petalme/seattle-weather-prediction-dataset
 
-wd$tom<-with(wd,ifelse(hum>70 & temp<22,"Yes","No"))
-wd$tom<-as.factor(wd$tom)
-wd$rt<-as.factor(wd$rt)
+weatherdata <- read.csv("/Users/kadar/Downloads/seattle-weather.csv")
 
-sample<-sample.split(wd$temp,SplitRatio=0.8)
-train<-subset(wd,sample==TRUE)
-test<-subset(wd,sample==FALSE)
+# Inspect the dataset
+head(weatherdata)
+str(weatherdata)
 
-train$tom<-as.factor(train$tom)
-test$tom<-as.factor(test$tom)
 
-control<-ctree_control(mincriterion = 0.95,minsplit = 10)
-model<-ctree(tom~rt+ws+hum+temp,data=train,control=control)
-plot(model,main="Dec tree")
 
-predict_model <- predict(model, newdata = test)
+# Convert 'weather' to a factor for classification
+weatherdata$weather <- as.factor(weatherdata$weather)
 
-# Create a confusion matrix
-mat <- table(test$tom, predict_model)
-print("Confusion Matrix:")
+# Split the dataset into training and testing sets (80-20 split)
+split=sample.split(weatherdata$weather, SplitRatio=0.8)
+train=subset(weatherdata, split==TRUE)
+test=subset(weatherdata, split==FALSE)
+
+# Train a decision tree model to predict 'weather'
+model <- ctree(weather ~ precipitation + temp_max + temp_min + wind, data = train)
+
+# Plot the decision tree
+plot(model)
+
+
+
+# Make predictions on the test set
+predict_model <- predict(model, test)
+
+# Generate a confusion matrix to evaluate model performance
+mat <- table(test$weather, predict_model)
 print(mat)
 
-# Calculate accuracy
+# Calculate the accuracy of the model
 accuracy <- sum(diag(mat)) / sum(mat)
-print(paste("Accuracy:", round(accuracy * 100, 2), "%"))
+print(paste("Accuracy:", accuracy))
